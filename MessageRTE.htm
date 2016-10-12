@@ -1,0 +1,850 @@
+﻿<html>
+	<head>
+		<style type="text/css">
+			.imagebutton {height: 22; width: 23; border: solid 2px #C0C0C0; background-color: #C0C0C0}
+			.image {position: relative; left: 1; top: 1; height:20; width:21; border:none;}
+			.toolbar {height: 30; background-color: #C0C0C0;}
+		</style>
+		<title id="MessageRTE">Message RTE pour MH</title>
+		<script type="text/javascript">
+			var PathEmoticons = "http://balooz.5gbfree.com/MessageRTE/Emoticones/";
+			var command = "";
+			var hostnames = ["http://mh.fr.nf", "http://www.mh.fr.nf", "http://games.mountyhall.com", "https://games.mountyhall.com", "http://mh.fr.nf/mountyhall/", "http://www.mh.fr.nf/mountyhall/", "http://mobile.mountyhall.com/","http://accro.mountyhall.com"];
+
+			// Initialiser la toolbar
+			function InitToolbarButtons() {
+				var kids = document.getElementsByTagName('DIV');
+				for (var i = 0; i < kids.length; i++) {
+					if (kids[i].className == "imagebutton") {
+						kids[i].onmouseover = tbmouseover;
+						kids[i].onmouseout = tbmouseout;
+						kids[i].onmousedown = tbmousedown;
+						kids[i].onmouseup = tbmouseup;
+						kids[i].onclick = tbclick;
+					}
+				}
+				// Mettre le focus dans la boite d'édition
+				document.getElementById('edit').contentWindow.focus();
+			}
+
+			//Donner un bel effet quand on clique
+			function tbmousedown(e) {
+				var evt = e ? e : window.event;
+				this.firstChild.style.left = 2;
+				this.firstChild.style.top = 2;
+				this.style.border = "inset 2px";
+				if (evt.returnValue) {
+					evt.returnValue = false;
+				} else if (evt.preventDefault) {
+					evt.preventDefault();
+				} else {
+					return false;
+				}
+			}
+
+			// Enlever l'effet
+			function tbmouseup() {
+				this.firstChild.style.left = 1;
+				this.firstChild.style.top = 1;
+				this.style.border = "outset 2px";
+			}
+
+			// Enlever l'effet survol
+			function tbmouseout() {
+				this.style.border = "solid 2px #C0C0C0";
+			}
+
+			// Mettre un effet pour le survol
+			function tbmouseover() {
+				this.style.border = "outset 2px";
+			}
+
+			// Position top d'un elm
+			function getOffsetTop(elm) {
+				var mOffsetTop = elm.offsetTop;
+				var mOffsetParent = elm.offsetParent;
+				while (mOffsetParent) {
+					mOffsetTop += mOffsetParent.offsetTop;
+					mOffsetParent = mOffsetParent.offsetParent;
+				}
+				return mOffsetTop;
+			}
+
+			// Position left d'un elm
+			function getOffsetLeft(elm) {
+				var mOffsetLeft = elm.offsetLeft;
+				var mOffsetParent = elm.offsetParent;
+				while (mOffsetParent) {
+					mOffsetLeft += mOffsetParent.offsetLeft;
+					mOffsetParent = mOffsetParent.offsetParent;
+				}
+				return mOffsetLeft;
+			}
+
+			// Action de cliquer sur un élément de la toolbar
+			function tbclick() {
+				//Ne pas utiliser les Css
+				UseCss(false);
+				dismissPalettes();
+
+				if ((this.id == "forecolor") || (this.id == "backColor") || (this.id == "hilitecolor")) {
+					// Faire apparaitre la palette des couleurs
+					if (this.id == "hilitecolor") {
+						UseCss(true);
+					}
+					command = this.id;
+					buttonElement = document.getElementById(this.id);
+					document.getElementById("colorpalette").style.left = getOffsetLeft(buttonElement);
+					document.getElementById("colorpalette").style.top = getOffsetTop(buttonElement) + buttonElement.offsetHeight;
+					document.getElementById("colorpalette").style.visibility = "visible";
+				} else if (this.id == "Signature") {
+					ShowSignaturePanel(this.id);
+				} else if ((this.id == "emoticon")) {
+					// Faire apparaitre la palette des emoticons
+					command = "insertimage";
+					buttonElement = document.getElementById(this.id);
+					document.getElementById("EmoticonPalette").style.left = getOffsetLeft(buttonElement);
+					document.getElementById("EmoticonPalette").style.top = getOffsetTop(buttonElement) + buttonElement.offsetHeight;
+					document.getElementById("EmoticonPalette").style.visibility = "visible";
+				} else if (this.id == "insertimage") {
+					// Insérer un lien vers une image
+					CreateImage()
+				} else if (this.id == "insertlinkimage") {
+					CreateLinkImage()
+				} else if (this.id == "inserthtml") {
+					// Insérer des quotes
+					addCustomTag("<br/><center><div style='background-color:#FFFCBE;border-width: 1px; border-style: solid; border-color: #000000;width:80%'><div style='margin:5 5 5 30;Text-align:left'>", "</div></div></center><br/>");
+				} else if (this.id == "createLink") {
+					// Insérer un lien
+					CreateLink();
+				} else if (this.id == "SaveMsg") {
+					SaveMsg();
+				} else if (this.id == "RestoreMsg") {
+					RestoreMsg();
+				} else if (this.id == "Reply") {
+					Reply();
+				} else if (this.id == "Trollducteur") {
+					Trollducteur();
+				} else if (this.id == "Preview") {
+					Preview();
+				} else {
+					// Toutes les autres commandes standards : Bold, Italic...
+					document.getElementById('edit').contentWindow.document.execCommand(this.id, false, null);
+				}
+
+				// Remettre le focus sur la fenêtre d'édition pour ne pas casser le rythme de frappe
+				document.getElementById('edit').contentWindow.focus();
+				// Copier dans la textArea
+				if (this.id != "RestoreMsg" && this.id != "Reply") {
+					SendHtml();
+				}
+			}
+
+			// Exécuter les commandes nécessitant un paramètre saisi dans une ddl
+			function Select(selectname) {
+				var cursel = document.getElementById(selectname).selectedIndex;
+				/* First one is always a label */
+				if (cursel != 0) {
+					var selected = document.getElementById(selectname).options[cursel].value;
+					document.getElementById('edit').contentWindow.document.execCommand(selectname, false, selected);
+					document.getElementById(selectname).selectedIndex = 0;
+				}
+				document.getElementById('edit').contentWindow.focus();
+				SendHtml();
+			}
+
+			function setCursorPosition(oInput, oStart, oEnd) {
+				if (oInput.setSelectionRange) {
+					oInput.setSelectionRange(oStart, oEnd);
+				} else if (oInput.createTextRange) {
+					var range = oInput.createTextRange();
+					range.collapse(true);
+					range.moveEnd('character', oEnd);
+					range.moveStart('character', oStart);
+					range.select();
+				}
+			}
+
+			// Sélectionner la font
+			function SelectFont(selectname) {
+				try {
+					var cursel = document.getElementById(selectname).selectedIndex;
+					SaveMpFont(document.getElementById(selectname).options[cursel].value);
+					Select(selectname)
+				} catch(e) {
+					alert("SelectFont :" + e.message);
+				}
+			}
+
+			// Initialiser la font
+			function AskInitFont() {
+				try {
+					var font = '';
+					if (MZ_getValue('MpFont')) font = MZ_getValue('MpFont');
+					alert(font);
+					setSelectedIndex(document.getElementById('fontname'), font);
+				} catch (e) {
+					alert("AskInitFont :" + e.message);
+				}
+			}
+
+			// Cacher les palettes
+			function dismissPalettes() {
+				document.getElementById("colorpalette").style.visibility = "hidden";
+				document.getElementById("EmoticonPalette").style.visibility = "hidden";
+			}
+
+			// Initialisation
+			function Start() {
+				try {
+					//Activer le mode édtion
+					document.getElementById('edit').contentWindow.document.designMode = "on";
+					// Préparer la toolbar
+					InitToolbarButtons();
+					// Pour faire disparaitre la palette
+					if (document.addEventListener) {
+						document.getElementById('edit').contentWindow.document.addEventListener("mousedown",function(){ dismissPalettes(); HideSignaturePanel();}, true);
+						//document.getElementById('edit').contentWindow.document.addEventListener("mousedown", HideSignaturePanel, true);
+						document.addEventListener("keypress", dismissPalettes, true);
+						document.getElementById('edit').contentWindow.document.addEventListener("keypress", dismissPalettes, true);
+						//document.getElementById('edit').contentWindow.document.addEventListener("keydown", function (event) { onKeyPressHandler(event); }, true);
+					}
+					// Message dispatching
+					window.addEventListener("message", receiveMessage, false);
+					// Assurer que le texte est copié dans la textArea
+					document.getElementById('edit').contentWindow.document.addEventListener('keyup', SendHtml, true);
+					// Cacher la textArea originale
+					HideTextArea();
+					// Montrer la nouvelle boite d'édition RTE
+					DisplayRTE();
+					// S'il y a eu une frappe dans la textArea, remplir la boite d'édition
+					RequestText();
+					// Si une valeur est présélectionnée, initialiser la font
+					//InitFont();
+					// Prendre la signature
+					RequestMpSignature();
+					// Prendre la signature
+					RequestMpSignatureUsage();
+					// Prendre la font
+					RequestMpFont();
+					// MH définit le focus sur le titre --> pas la peine d'essayer de le rendre par ici au RTE
+				} catch(e) {
+					alert("MessageRTE.htm - Start : " + e.message)
+				}
+			}
+
+			// Définit le mode de création de l'html
+			function UseCss(source) {
+				try {
+					document.getElementById('edit').contentWindow.document.execCommand("styleWithCSS", false, (source));
+				} catch (e) {
+					alert("MessageRTE.htm - UseCss : " + e.message);
+				}
+			}
+
+			// Check origin
+			function checkOrigin(hostname) {
+				var ret = false;
+				try {
+					for( i = 0; i< hostnames.length; i++) {
+						if(hostnames[i]==hostname) {
+							ret = true;
+							break;
+						}
+					}
+					return ret;
+				} catch (e) {
+					alert("MessageRTE.htm - checkOrigin : " + e.message);
+				}
+				return ret;
+			}
+
+			function displayPossibleOrigins() {
+				try {
+					var ret = "";
+					var sep = ",";
+					for( i = 0; i<hostnames.length; i++) {
+						if (i == hostnames.length - 2) {
+							sep = " ou " ;
+						}
+						ret = ret + hostnames[i] + sep;
+					}
+					return ret;
+				} catch (e) {
+					alert("MessageRTE.htm - displayPossibleOrigins : " + e.message);
+					return "";
+				}
+			}
+
+			// Communication xFrame : fonction de réception des demandes du parents
+			function receiveMessage(event) {
+				try {
+					if (checkOrigin(event.origin.toLowerCase()) == true) {
+						if (event.data == "RequestHtmlText") {
+							SendHtml();
+						} else if (event.data.substring(0, "FillText".length) == "FillText") {
+							FillHtml(event.data.substring("FillText".length, event.data.length));
+						} else if (event.data.substring(0, "JsSendMpSignatureUsage".length) == "JsSendMpSignatureUsage") {
+							document.getElementById("chkUseSignature").checked = (event.data.substring("JsSendMpSignatureUsage".length, event.data.length)=="true");
+						} else if (event.data.substring(0, "JsSendMpSignature".length) == "JsSendMpSignature") {
+							document.getElementById("TextAreaSignature").value = event.data.substring("JsSendMpSignature".length, event.data.length);
+						} else if (event.data.substring(0, "JsSendMpFont".length) == "JsSendMpFont") {
+							document.getElementById('edit').contentWindow.document.execCommand('fontname', false, event.data.substring("JsSendMpFont".length, event.data.length));
+						}
+					} else {
+						alert("HostName incorrect :" + event.origin + " alors que " + displayPossibleOrigins() + " étaient attendus.");
+					}
+				} catch (e) {
+					alert("MessageRTE.htm - receiveMessage : " + e.message)
+				}
+			}
+
+			// Renvoie l'html présent dans la boite d'édition
+			function GetHtml() {
+				try {
+					var signature = "";
+					if (document.getElementById("chkUseSignature").checked) {
+						signature = document.getElementById("TextAreaSignature").value;
+					}
+					return document.getElementById('edit').contentWindow.document.body.innerHTML.replace(/\n/gi, '') + signature;
+				} catch (err) {
+					alert("MessageRTE.htm - GetHtml : " + err.message);
+				}
+			}
+
+			// Envoie l'html à la page parent
+			function SendHtml() {
+				PostMessage("SendHtml" + ReplaceEmoticons(GetHtml()));
+			}
+
+			// Envoie l'html à la page parent
+			function RequestText() {
+				PostMessage("RequestText");
+			}
+
+			// Demande à la page parent de cacher la textArea
+			function HideTextArea() {
+				PostMessage("HideTextArea");
+			}
+
+			// Demande à la page parent de montrer le RTE
+			function DisplayRTE() {
+				PostMessage("DisplayRTE");
+			}
+
+			// Demande à la page parent de sauver le message
+			function SaveMsg() {
+				PostMessage("SaveMsg");
+			}
+
+			// Demande à la page parent de rafraichir l'aperçu
+			function Preview() {
+				document.getElementById('edit').contentWindow.document.body.innerHTML = ReplaceEmoticons(document.getElementById('edit').contentWindow.document.body.innerHTML.replace(/\n/gi, ''));
+				PostMessage("Preview");
+			}
+
+			// Demande à la page parent de recharger le message stocké
+			function RestoreMsg() {
+				PostMessage("RestoreMsg");
+			}
+
+			// Demande à la page parent de recharger le message stocké
+			function Reply() {
+				PostMessage("Reply");
+			}
+
+			// Demande à la page de sauvegarder l'état de l'utilisation de la signature
+			function SaveSignatureUsage() {
+				PostMessage("SaveSignatureUsage" + document.getElementById('chkUseSignature').checked);
+			}
+
+			// Fonction générique pour l'envoi de message
+			function PostMessage(message) {
+				try {
+					parent.postMessage(message, "*");
+				} catch (err) {
+					alert("MessageRTE.htm - PostMessage : " + err.message);
+				}
+			}
+
+			// Remplit la boite d'édition avec le texte de la textArea
+			function FillHtml(text) {
+				try {
+					document.getElementById('edit').contentWindow.document.body.innerHTML = text;
+				} catch (err) {
+					alert("MessageRTE.htm - FillHtml : " + err.message);
+				}
+			}
+
+			// Convertit les emoticons texte en images
+			function ReplaceEmoticons(text) {
+				try {
+					return text
+						.replace(/\:\lol/g, ComposeEmoticonsLink("Icon_lol.gif"))
+						.replace(/\:\)/g, ComposeEmoticonsLink("icon_smile.gif"))
+						.replace(/\:s/g, ComposeEmoticonsLink("icon_Confused.gif")).replace(/\:S/g, ComposeEmoticonsLink("icon_Confused.gif"))
+						.replace(/\:D/g, ComposeEmoticonsLink("icon_smile_big.gif"))
+						.replace(/\;\)/g, ComposeEmoticonsLink("icon_smile_wink.gif"))
+						.replace(/\:p/g, ComposeEmoticonsLink("icon_smile_tongue.gif"))
+						.replace(/\:\(/g, ComposeEmoticonsLink("icon_smile_sad.gif"));
+				} catch (err) {
+					alert("MessageRTE.htm - ReplaceEmoticons : " + err.message);
+				}
+			}
+
+			// Compose le lien vers l'emoticon
+			function ComposeEmoticonsLink(emotName) {
+				try {
+					return "<img src='" + PathEmoticons + emotName + "'>";
+				} catch (err) {
+					alert("MessageRTE.htm - ComposeEmoticonsLink : " + err.message);
+				}
+			}
+
+			// Stocke la signature
+			function SaveMpSignature(signature) {
+				try {
+					PostMessage("SaveMpSignature" + signature);
+					HideSignaturePanel();
+					SendHtml();
+				} catch(e) {
+					alert("SaveMpSignature : " + e.message);
+				}
+			}
+
+			function SaveMpFont(fontname) {
+				try {
+					PostMessage("SaveMpFont" + fontname);
+				} catch (e) {
+					alert("SaveMpFont : " + e.message);
+				}
+			}
+
+			// Demande la signature
+			function RequestMpSignature() {
+				try {
+					PostMessage("RTERequestMpSignature");
+				} catch (e) {
+					alert("RTERequestMpSignature : " + e.message);
+				}
+			}
+
+			// Demande l'utilisation de la signature
+			function RequestMpSignatureUsage() {
+				try {
+					PostMessage("RTERequestMpSignatureUsage");
+				} catch (e) {
+					alert("RequestMpSignatureUsage : " + e.message);
+				}
+			}
+
+			// Demande la font
+			function RequestMpFont() {
+				try {
+					PostMessage("RTERequestMpFont");
+				} catch (e) {
+					alert("RequestMpFont : " + e.message);
+				}
+			}
+
+			// Fonction montrant le panneau de configuration de la signature
+			function ShowSignaturePanel(id) {
+				try {
+					buttonElement = document.getElementById(id);
+					document.getElementById("SignaturePanel").style.left = getOffsetLeft(buttonElement);
+					document.getElementById("SignaturePanel").style.top = getOffsetTop(buttonElement) + buttonElement.offsetHeight;
+					document.getElementById("SignaturePanel").style.visibility = "visible";
+				} catch (e) {
+					alert("ShowSignaturePanel : " + e.message);
+				}
+			}
+
+			// Fonction cachant le panneau de configuration de la signature
+			function HideSignaturePanel() {
+				try {
+					document.getElementById('SignaturePanel').style.visibility = 'hidden';
+				} catch (e) {
+					alert("HideSignaturePanel : " + e.message);
+				}
+			}
+
+			// Ajout d'un effet lors du survol de la palette
+			function overPalette(me) {
+				me.style.border = '2px dotted #ff9900';
+			}
+
+			// Suppression de l'effet après le survol de la palette
+			function outPalette(me) {
+				me.style.border = '1px solid gray';
+			}
+
+			// Sélection de la couleur lors du clic sur la palette
+			function clickPalette(me) {
+				selectColor(me.id);
+			}
+			// Sélection de la couleur durant le clic sur la palette
+			function selectColor(color) {
+				document.getElementById('edit').contentWindow.document.execCommand(command, false, color);
+				document.getElementById("colorpalette").style.visibility = "hidden";
+				document.getElementById('edit').contentWindow.focus();
+				SendHtml();
+			}
+
+			// Sélection de l'emoticon lors du clic sur la palette emoticon
+			function clickEmoticon(me) {
+				document.getElementById('edit').contentWindow.document.execCommand(command, false, PathEmoticons +me.id);
+				document.getElementById("EmoticonPalette").style.visibility = "hidden";
+				document.getElementById('edit').contentWindow.focus();
+				SendHtml();
+			}
+
+			function addCustomTag(startTag, endTag) {
+				try {
+					var messageAreaWindow = document.getElementById('edit').contentWindow;
+					var selection = messageAreaWindow.getSelection().toString();
+					var sCustomTag = startTag + selection.replace(/\r?\n/g, '<br>') + endTag;
+					messageAreaWindow.document.execCommand("inserthtml", false, sCustomTag);
+				} catch (e) {
+					alert("MessageRTE.htm - addCustomTag : " + err.message);
+				}
+			}
+
+			function CreateLink() {
+				try {
+					var sel = document.getElementById('edit').contentWindow.getSelection();
+					if (sel.toString().length > 0 && sel != null) {
+						var url = prompt("Veuillez saisir l'URL à linker", "http://www.");
+						if (url != null) {
+							if (url.length > 0) {
+								document.getElementById('edit').contentWindow.document.execCommand("RemoveFormat", false, null);
+								document.getElementById('edit').contentWindow.document.execCommand("createLink", false, url);
+							} else {
+								alert("l'url ne peut être vide. Le lien ne sera pas inséré.")
+							}
+						}
+					} else {
+						alert("Veuillez sélectionner un texte sur lequel appliquer le lien.");
+					}
+				} catch (e) {
+					alert("CreateLink : " + e.message);
+				}
+			}
+
+			function CreateLinkImage() {
+				try {
+					var url = prompt("Veuillez saisir l'URL à linker", "http://www.");
+					if (url != null) {
+						if (url.length > 0) {
+							var imgPath = prompt("Veuillez saisir l'URL de l'image", "http://www.");
+							if (imgPath != null) {
+								if (imgPath.length > 0) {
+									var sHtml = "<a href='" + url + "'><img src='" + imgPath + "'/></a>";
+									document.getElementById('edit').contentWindow.document.execCommand("inserthtml", false, sHtml);
+								} else {
+									alert("l'url ne peut être vide. Le lien ne sera pas inséré.")
+								}
+							}
+						} else {
+							alert("l'url ne peut être vide. Le lien ne sera pas inséré.")
+						}
+					}
+				} catch (e) {
+					alert("CreateLink : " + e.message);
+				}
+			}
+
+			function CreateImage() {
+				try {
+					var url = prompt("Veuillez saisir l'URL de l'image", "http://www.");
+					if (url != null) {
+						if (url.length > 0) {
+							document.getElementById('edit').contentWindow.document.execCommand("insertimage", false, url);
+						} else {
+							alert("l'url ne peut être vide. Le lien ne sera pas inséré.")
+						}
+					}
+				} catch (e) {
+					alert("CreateLink : " + e.message);
+				}
+			}
+
+			/// Paste
+			//function onKeyPressHandler(e) {
+			//	alert("enter");
+			//	alert(e.keyCode);
+			//	var ctrlDown = evt.ctrlKey;
+			//	alert(ctrlDown);
+			//	if ((ctrlDown && e.keyCode == 86) || (e.shiftKey && e.keyCode == 85)) {
+			//		alert("e");
+			//		setTimeout(function () {alert("trying to paste");}, 1);
+			//	}
+			//	alert(e.keyCode);
+			//	alert(ctrlDown);
+			//}
+
+			/* Ajout de disciple (62333) */
+			//-- Trõlldûctéûr --
+			function Trollducteur() {
+				try {
+					var message = document.getElementById('edit').contentWindow.document.body.textContent;
+					var mots = message.split(' ');
+					for (var i = 0; i < mots.length; i++) {
+						document.getElementById('edit').contentWindow.document.body.innerHTML = document.getElementById('edit').contentWindow.document.body.innerHTML.replace(mots[i], TranslateToToll(mots[i]));
+					}
+				} catch (e) {
+					alert("trollducteur :" + e.message);
+				}
+			};
+
+			function TranslateToToll(message) {
+				return message
+					.replace(/°*y°*/g, '°y°')
+					.replace(/a/g, 'à')
+					.replace(/e/g, 'é')
+					.replace(/i/g, 'ï')
+					.replace(/o/g, 'õ')
+					.replace(/u/g, 'û')
+					.replace(/A/g, 'À')
+					.replace(/E/g, 'É')
+					.replace(/I/g, 'Ï')
+					.replace(/O/g, 'Õ')
+					.replace(/U/g, 'Û');
+			}
+		</script>
+	</head>
+	<body onLoad="Start();">
+		<table bgcolor="#C0C0C0" id="toolbar2" style="width:100%;border:1px solid black">
+			<tr>
+				<td colspan="3">
+					<select id="formatblock" onchange="Select(this.id);">
+						<option value="<p>">Normal</option>
+						<option value="<p>">Paragraph</option>
+						<option value="<h1>">Heading 1 <H1></option>
+						<option value="<h2>">Heading 2 <H2></option>
+						<option value="<h3>">Heading 3 <H3></option>
+						<option value="<h4>">Heading 4 <H4></option>
+						<option value="<h5>">Heading 5 <H5></option>
+						<option value="<h6>">Heading 6 <H6></option>
+					</select>
+				</td>
+				<td colspan="4">
+					<select id="fontname" onchange="SelectFont(this.id);">
+						<option value="Font">Font</option>
+						<option value="Arial">Arial</option>
+						<option value="Courier">Courier</option>
+						<option value="Times New Roman">Times New Roman</option>
+						<option value="Comic Sans MS">Comic Sans MS</option>
+						<option value="Impact">Impact</option>
+						<option value="Verdana">Verdana</option>
+						<option value="Georgia">Georgia</option>
+						Georgia1
+					</select>
+				</td>
+				<td>
+					<select unselectable="on" id="fontsize" onchange="Select(this.id);">
+						<option value="Size">Size</option>
+						<option value="1">1</option>
+						<option value="2">2</option>
+						<option value="3">3</option>
+						<option value="4">4</option>
+						<option value="5">5</option>
+						<option value="6">6</option>
+						<option value="7">7</option>
+					</select>
+				</td>
+				<td><div class="imagebutton" id="bold"><img class="image" src="bold.gif" alt="Gras" title="Gras"></div></td>
+				<td><div class="imagebutton" id="italic"><img class="image" src="italic.gif" alt="Italique" title="Italique"></div></td>
+				<td><div class="imagebutton" id="underline"><img class="image" src="underline.gif" alt="Souligné" title="Souligné"></div></td>
+				<td><div class="imagebutton" id="strikethrough"><img class="image" src="strikethrough.gif" alt="Barré" title="Barré"></div></td>
+				<td><div style="left: 10;" class="imagebutton" id="forecolor"><img class="image" src="forecolor.gif" alt="Couleur du texte" title="Couleur du texte"></div></td>
+				<td><div style="left: 40;" class="imagebutton" id="hilitecolor"><img class="image" src="backcolor.gif" alt="Couleur du fond" title="Couleur du fond"></div></td>
+				<td><div style="left: 40;" class="imagebutton" id="RemoveFormat"><img class="image" src="RemoveFormat.gif" alt="Supprimer le formatage" title="Supprimer le formatage"></div></td>
+				<td><div style="left: 40;" class="imagebutton" id="createLink"><img class="image" src="link.gif" alt="Insérer un lien pour le texte sélectionné" title="Insérer un lien pour le texte sélectionné"></div></td>
+				<td><div style="left: 40;" class="imagebutton" id="insertlinkimage"><img class="image" src="ImageLink.gif" alt="Image-lien" title="Insérer une image-lien"></div></td>
+				<td><div style="left: 40;" class="imagebutton" id="inserthtml"><img class="image" src="quote.gif" alt="Insérer en bloc 'quote' le texte sélectionné" title="Insérer en bloc 'quote' le texte sélectionné"></div></td>
+			</tr>
+			<tr>
+				<td><div style="left: 10;" class="imagebutton" id="Preview"><img class="image" src="preview.gif" alt="Rafraîchir l'aperçu" title="Rafraîchir l'aperçu"></div></td>
+				<td><div style="left: 40;" class="imagebutton" id="SaveMsg"><img class="image" src="save.jpg" alt="Sauvegarder le message" title="Sauvegarder le message"></div></td>
+				<td><div style="left: 40;" class="imagebutton" id="RestoreMsg"><img class="image" src="open.jpg" alt="Recharger le message" title="Recharger le message"></div></td>
+				<td style="width:10px"><div style="left: 40;" class="imagebutton" id="Reply"><img class="image" src="Reply.gif" alt="Citer en réponse" title="Citer en réponse"></div></td>
+				<td style="width:10px"><div style="left: 40;" class="imagebutton" id="Trollducteur"><img class="image" src="Trollducteur.gif" alt="Traduire en vieux troll" title="Traduire en vieux troll"></div></td>
+				<td style="width:10px"><div style="left: 40;" class="imagebutton" id="Signature"><img class="image" src="Signature.gif" alt="Modifier la signature" title="Modifier la signature"></div></td>
+				<td></td>
+				<td></td>
+				<td><div style="left: 40;" class="imagebutton" id="emoticon"><img class="image" src="Emoticon.gif" alt="Insérer une emoticon" title="Insérer une emoticon"></div></td>
+				<td><div style="left: 10;" class="imagebutton" id="insertimage"><img class="image" src="insertimage.gif" alt="Insérer une image" title="Insérer une image"></div></td>
+				<td><div style="left: 10;" class="imagebutton" id="insertorderedlist"><img class="image" src="orderedlist.gif" alt="Liste numérique" title="Liste numérique"></div></td>
+				<td><div style="left: 40;" class="imagebutton" id="insertunorderedlist"><img class="image" src="unorderedlist.gif" alt="Liste à puces" title="Liste à puces"></div></td>
+				<td><div style="left: 40;" class="imagebutton" id="insertHorizontalRule"><img class="image" src="hr.gif" alt="Ligne horizontale" title="Ligne horizontale"></div></td>
+				<td><div style="left: 10;" class="imagebutton" id="outdent"><img class="image" src="outdent.gif" alt="Outdent" title="Outdent"></div></td>
+				<td><div style="left: 40;" class="imagebutton" id="indent"><img class="image" src="indent.gif" alt="Indent" title="Indent"></div></td>
+				<td><div style="left: 10;" class="imagebutton" id="justifyleft"><img class="image" src="justifyleft.gif" alt="Aligner à gauche" title="Aligner à gauche"></div></td>
+				<td><div style="left: 40;" class="imagebutton" id="justifycenter"><img class="image" src="justifycenter.gif" alt="Centrer" title="Centrer"></div></td>
+				<td><div style="left: 70;" class="imagebutton" id="justifyright"><img class="image" src="justifyright.gif" alt="Aligner à droite" title="Aligner à droite"></div></td>
+			</tr>
+		</table>
+		<iframe id="edit" style="width:100%;height:300px;Background-color:white;overflow:auto"></iframe>
+		<div width="250" height="170" id="colorpalette" style="visibility:hidden; position: absolute;z-index:100">
+			<table border="1" cellpadding="1" cellspacing="1">
+				<tr>
+					<td id="#FFFFFF" bgcolor="#FFFFFF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FFCCCC" bgcolor="#FFCCCC" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FFCC99" bgcolor="#FFCC99" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FFFF99" bgcolor="#FFFF99" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FFFFCC" bgcolor="#FFFFCC" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#99FF99" bgcolor="#99FF99" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#99FFFF" bgcolor="#99FFFF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#CCFFFF" bgcolor="#CCFFFF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#CCCCFF" bgcolor="#CCCCFF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FFCCFF" bgcolor="#FFCCFF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+				</tr>
+				<tr>
+					<td id="#CCCCCC" bgcolor="#CCCCCC" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FF6666" bgcolor="#FF6666" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FF9966" bgcolor="#FF9966" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FFFF66" bgcolor="#FFFF66" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FFFF33" bgcolor="#FFFF33" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#66FF99" bgcolor="#66FF99" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#33FFFF" bgcolor="#33FFFF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#66FFFF" bgcolor="#66FFFF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#9999FF" bgcolor="#9999FF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FF99FF" bgcolor="#FF99FF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+				</tr>
+				<tr>
+					<td id="#C0C0C0" bgcolor="#C0C0C0" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FF0000" bgcolor="#FF0000" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FF9900" bgcolor="#FF9900" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FFCC66" bgcolor="#FFCC66" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FFFF00" bgcolor="#FFFF00" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#33FF33" bgcolor="#33FF33" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#66CCCC" bgcolor="#66CCCC" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#33CCFF" bgcolor="#33CCFF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#6666CC" bgcolor="#6666CC" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#CC66CC" bgcolor="#CC66CC" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+				</tr>
+				<tr>
+					<td id="#999999" bgcolor="#999999" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#CC0000" bgcolor="#CC0000" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FF6600" bgcolor="#FF6600" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FFCC33" bgcolor="#FFCC33" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#FFCC00" bgcolor="#FFCC00" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#33CC00" bgcolor="#33CC00" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#00CCCC" bgcolor="#00CCCC" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#3366FF" bgcolor="#3366FF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#6633FF" bgcolor="#6633FF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#CC33CC" bgcolor="#CC33CC" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+				</tr>
+				<tr>
+					<td id="#666666" bgcolor="#666666" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#990000" bgcolor="#990000" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#CC6600" bgcolor="#CC6600" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#CC9933" bgcolor="#CC9933" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#999900" bgcolor="#999900" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#009900" bgcolor="#009900" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#339999" bgcolor="#339999" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#3333FF" bgcolor="#3333FF" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#6600CC" bgcolor="#6600CC" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#993399" bgcolor="#993399" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+				</tr>
+				<tr>
+					<td id="#333333" bgcolor="#333333" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#660000" bgcolor="#660000" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#993300" bgcolor="#993300" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#996633" bgcolor="#996633" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#666600" bgcolor="#666600" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#006600" bgcolor="#006600" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#336666" bgcolor="#336666" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#000099" bgcolor="#000099" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#333399" bgcolor="#333399" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#663366" bgcolor="#663366" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+				</tr>
+				<tr>
+					<td id="#000000" bgcolor="#000000" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#330000" bgcolor="#330000" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#663300" bgcolor="#663300" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#663333" bgcolor="#663333" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#333300" bgcolor="#333300" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#003300" bgcolor="#003300" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#003333" bgcolor="#003333" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#000066" bgcolor="#000066" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#330099" bgcolor="#330099" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+					<td id="#330033" bgcolor="#330033" width="20" height="20" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickPalette(this);"><img width="1" height="1"></td>
+				</tr>
+			</table>
+		</div>
+		<div width="300" height="300" id="EmoticonPalette" style="visibility:hidden; position: absolute;z-index:100;">
+			<table border="1" cellpadding="1" cellspacing="1" style="background-color:white;text-align:center;">
+				<tr>
+					<td id="icon_smile.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile.gif"/></td>
+					<td id="icon_smile_big.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile_big.gif"/></td>
+					<td id="icon_smile_wink.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile_wink.gif"/></td>
+					<td id="icon_smile_cool.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile_cool.gif"/></td>
+					<td id="icon_lol.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img height="33" src="./Emoticones/icon_lol.gif"/></td>
+				</tr>
+				<tr>
+					<td id="icon_smile_sad.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile_sad.gif"/></td>
+					<td id="icon_smile_dissapprove.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile_dissapprove.gif"/></td>
+					<td id="icon_smile_angry.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile_angry.gif"/></td>
+					<td id="icon_smile_evil.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile_evil.gif"/></td>
+					<td id="1a_teuflisch_2.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="25" src="./Emoticones/1a_teuflisch_2.gif"/></td>
+				</tr>
+				<tr>
+					<td id="icon_smile_clown.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile_clown.gif"/></td>
+					<td id="icon_smile_kisses.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile_kisses.gif"/></td>
+					<td id="icon_smile_blush.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile_blush.gif"/></td>
+					<td id="icon_smile_sleepy.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_smile_sleepy.gif"/></td>
+					<td id="24.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/24.gif"/></td>
+				</tr>
+				<tr>
+					<td id="icon_smile_tongue.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img height="15" src="./Emoticones/icon_smile_tongue.gif"/></td>
+					<td id="icon_smile_blackeye.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img height="15" src="./Emoticones/icon_smile_blackeye.gif"/></td>
+					<td id="icon_smile_shock.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img height="15" src="./Emoticones/icon_smile_shock.gif"/></td>
+					<td id="icon_Confused.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/icon_Confused.gif"/></td>
+					<td id="23.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="25" " src="./Emoticones/23.gif"/></td>
+				</tr>
+				<tr>
+					<td id="anniefreu2.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img height="25" src="./Emoticones/anniefreu2.gif"/></td>
+					<td id="baeh_2_2.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="30" src="./Emoticones/baeh_2_2.gif"/></td>
+					<td id="bawling.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img height="15" src="./Emoticones/bawling.gif"/></td>
+					<td id="bibber.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="15" height="15" src="./Emoticones/bibber.gif"/></td>
+					<td id="klatsch_2.gif" width="35px" height="35px" onmouseover="overPalette(this);" onmouseout="outPalette(this);" onclick="clickEmoticon(this);"><img width="33" src="./Emoticones/klatsch_2.gif"/></td>
+				</tr>
+			</table>
+		</div>
+		<label><input type="checkbox" onclick="viewsource(this.checked)"/>Voir la Source HTML</label>
+		<div id="SignaturePanel" style="border:1px black solid;background-color:#C0C0C0;width:300px;height:220px;position:absolute;z-index:102;visibility:hidden">
+			<div style="text-align:center">
+				<u>Configuration de la signature </u>
+				<textarea style="border:1px black solid;" id="TextAreaSignature" cols="30" rows="8"></textarea><br/>
+				<div style="text-align:left;margin-left:17px;margin-bottom:2px;padding-bottom:2px;">
+					<input type="checkbox" id="chkUseSignature" value="signature"/>
+					<span style="font-size:11px" onclick="document.getElementById('chkUseSignature').checked = !document.getElementById('chkUseSignature').checked;">Utiliser la signature dans tous les envois</span>
+				</div>
+				<div>
+					<input type="button" onclick="SaveMpSignature(document.getElementById('TextAreaSignature').value);SaveSignatureUsage();" value="Sauver"/>
+					<input type="button" onclick="HideSignaturePanel();" value="Annuler"/>
+				</div>
+			</div>
+		</div>
+
+		<script type="text/javascript">
+			// Passer la boite d'édition en mode html ou édition
+			function viewsource(source) {
+				var html;
+				if (source) {
+					html = document.createTextNode(document.getElementById('edit').contentWindow.document.body.innerHTML);
+					document.getElementById('edit').contentWindow.document.body.innerHTML = "";
+					html = document.getElementById('edit').contentWindow.document.importNode(html, false);
+					document.getElementById('edit').contentWindow.document.body.appendChild(html);
+					document.getElementById("toolbar2").style.visibility = "hidden";
+				} else {
+					html = document.getElementById('edit').contentWindow.document.body.ownerDocument.createRange();
+					html.selectNodeContents(document.getElementById('edit').contentWindow.document.body);
+					document.getElementById('edit').contentWindow.document.body.innerHTML = html.toString();
+					document.getElementById("toolbar2").style.visibility = "visible";
+				}
+			}
+		</script>
+	</body>
+</html>
