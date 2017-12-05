@@ -9,8 +9,7 @@
 		<script type="text/javascript">
 			var PathEmoticons = "https://xballiet.github.io/MessageRTE/Emoticones/";
 			var command = "";
-			var hostnames = ["http://mh.fr.nf", "http://www.mh.fr.nf", "http://games.mountyhall.com", "https://games.mountyhall.com", "http://mh.fr.nf/mountyhall/", "http://www.mh.fr.nf/mountyhall/", "http://mobile.mountyhall.com/","http://accro.mountyhall.com","https://mh2.mh.raistlin.fr"];
-
+			var hostnames = ["https://mh2.mh.raistlin.fr/mountyhall/", "http://mh.fr.nf", "http://www.mh.fr.nf", "http://games.mountyhall.com", "https://games.mountyhall.com", "http://mh.fr.nf/mountyhall/", "http://www.mh.fr.nf/mountyhall/", "http://mobile.mountyhall.com/","http://accro.mountyhall.com"];
 			// Initialiser la toolbar
 			function InitToolbarButtons() {
 				var kids = document.getElementsByTagName('DIV');
@@ -26,7 +25,6 @@
 				// Mettre le focus dans la boite d'édition
 				document.getElementById('edit').contentWindow.focus();
 			}
-
 			//Donner un bel effet quand on clique
 			function tbmousedown(e) {
 				var evt = e ? e : window.event;
@@ -41,24 +39,20 @@
 					return false;
 				}
 			}
-
 			// Enlever l'effet
 			function tbmouseup() {
 				this.firstChild.style.left = 1;
 				this.firstChild.style.top = 1;
 				this.style.border = "outset 2px";
 			}
-
 			// Enlever l'effet survol
 			function tbmouseout() {
 				this.style.border = "solid 2px #C0C0C0";
 			}
-
 			// Mettre un effet pour le survol
 			function tbmouseover() {
 				this.style.border = "outset 2px";
 			}
-
 			// Position top d'un elm
 			function getOffsetTop(elm) {
 				var mOffsetTop = elm.offsetTop;
@@ -69,7 +63,6 @@
 				}
 				return mOffsetTop;
 			}
-
 			// Position left d'un elm
 			function getOffsetLeft(elm) {
 				var mOffsetLeft = elm.offsetLeft;
@@ -80,13 +73,11 @@
 				}
 				return mOffsetLeft;
 			}
-
 			// Action de cliquer sur un élément de la toolbar
 			function tbclick() {
 				//Ne pas utiliser les Css
 				UseCss(false);
 				dismissPalettes();
-
 				if ((this.id == "forecolor") || (this.id == "backColor") || (this.id == "hilitecolor")) {
 					// Faire apparaitre la palette des couleurs
 					if (this.id == "hilitecolor") {
@@ -131,7 +122,6 @@
 					// Toutes les autres commandes standards : Bold, Italic...
 					document.getElementById('edit').contentWindow.document.execCommand(this.id, false, null);
 				}
-
 				// Remettre le focus sur la fenêtre d'édition pour ne pas casser le rythme de frappe
 				document.getElementById('edit').contentWindow.focus();
 				// Copier dans la textArea
@@ -139,7 +129,6 @@
 					SendHtml();
 				}
 			}
-
 			// Exécuter les commandes nécessitant un paramètre saisi dans une ddl
 			function Select(selectname) {
 				var cursel = document.getElementById(selectname).selectedIndex;
@@ -152,7 +141,6 @@
 				document.getElementById('edit').contentWindow.focus();
 				SendHtml();
 			}
-
 			function setCursorPosition(oInput, oStart, oEnd) {
 				if (oInput.setSelectionRange) {
 					oInput.setSelectionRange(oStart, oEnd);
@@ -164,7 +152,6 @@
 					range.select();
 				}
 			}
-
 			// Sélectionner la font
 			function SelectFont(selectname) {
 				try {
@@ -175,7 +162,6 @@
 					alert("SelectFont :" + e.message);
 				}
 			}
-
 			// Initialiser la font
 			function AskInitFont() {
 				try {
@@ -187,13 +173,11 @@
 					alert("AskInitFont :" + e.message);
 				}
 			}
-
 			// Cacher les palettes
 			function dismissPalettes() {
 				document.getElementById("colorpalette").style.visibility = "hidden";
 				document.getElementById("EmoticonPalette").style.visibility = "hidden";
 			}
-
 			// Initialisation
 			function Start() {
 				try {
@@ -232,7 +216,6 @@
 					alert("MessageRTE.htm - Start : " + e.message)
 				}
 			}
-
 			// Définit le mode de création de l'html
 			function UseCss(source) {
 				try {
@@ -241,7 +224,6 @@
 					alert("MessageRTE.htm - UseCss : " + e.message);
 				}
 			}
-
 			// Check origin
 			function checkOrigin(hostname) {
 				var ret = false;
@@ -258,7 +240,6 @@
 				}
 				return ret;
 			}
-
 			function displayPossibleOrigins() {
 				try {
 					var ret = "";
@@ -275,7 +256,6 @@
 					return "";
 				}
 			}
-
 			// Communication xFrame : fonction de réception des demandes du parents
 			function receiveMessage(event) {
 				try {
@@ -298,7 +278,6 @@
 					alert("MessageRTE.htm - receiveMessage : " + e.message)
 				}
 			}
-
 			// Renvoie l'html présent dans la boite d'édition
 			function GetHtml() {
 				try {
@@ -311,53 +290,43 @@
 					alert("MessageRTE.htm - GetHtml : " + err.message);
 				}
 			}
-
 			// Envoie l'html à la page parent
 			function SendHtml() {
 				PostMessage("SendHtml" + ReplaceEmoticons(GetHtml()));
 			}
-
 			// Envoie l'html à la page parent
 			function RequestText() {
 				PostMessage("RequestText");
 			}
-
 			// Demande à la page parent de cacher la textArea
 			function HideTextArea() {
 				PostMessage("HideTextArea");
 			}
-
 			// Demande à la page parent de montrer le RTE
 			function DisplayRTE() {
 				PostMessage("DisplayRTE");
 			}
-
 			// Demande à la page parent de sauver le message
 			function SaveMsg() {
 				PostMessage("SaveMsg");
 			}
-
 			// Demande à la page parent de rafraichir l'aperçu
 			function Preview() {
 				document.getElementById('edit').contentWindow.document.body.innerHTML = ReplaceEmoticons(document.getElementById('edit').contentWindow.document.body.innerHTML.replace(/\n/gi, ''));
 				PostMessage("Preview");
 			}
-
 			// Demande à la page parent de recharger le message stocké
 			function RestoreMsg() {
 				PostMessage("RestoreMsg");
 			}
-
 			// Demande à la page parent de recharger le message stocké
 			function Reply() {
 				PostMessage("Reply");
 			}
-
 			// Demande à la page de sauvegarder l'état de l'utilisation de la signature
 			function SaveSignatureUsage() {
 				PostMessage("SaveSignatureUsage" + document.getElementById('chkUseSignature').checked);
 			}
-
 			// Fonction générique pour l'envoi de message
 			function PostMessage(message) {
 				try {
@@ -366,7 +335,6 @@
 					alert("MessageRTE.htm - PostMessage : " + err.message);
 				}
 			}
-
 			// Remplit la boite d'édition avec le texte de la textArea
 			function FillHtml(text) {
 				try {
@@ -375,7 +343,6 @@
 					alert("MessageRTE.htm - FillHtml : " + err.message);
 				}
 			}
-
 			// Convertit les emoticons texte en images
 			function ReplaceEmoticons(text) {
 				try {
@@ -391,7 +358,6 @@
 					alert("MessageRTE.htm - ReplaceEmoticons : " + err.message);
 				}
 			}
-
 			// Compose le lien vers l'emoticon
 			function ComposeEmoticonsLink(emotName) {
 				try {
@@ -400,7 +366,6 @@
 					alert("MessageRTE.htm - ComposeEmoticonsLink : " + err.message);
 				}
 			}
-
 			// Stocke la signature
 			function SaveMpSignature(signature) {
 				try {
@@ -411,7 +376,6 @@
 					alert("SaveMpSignature : " + e.message);
 				}
 			}
-
 			function SaveMpFont(fontname) {
 				try {
 					PostMessage("SaveMpFont" + fontname);
@@ -419,7 +383,6 @@
 					alert("SaveMpFont : " + e.message);
 				}
 			}
-
 			// Demande la signature
 			function RequestMpSignature() {
 				try {
@@ -428,7 +391,6 @@
 					alert("RTERequestMpSignature : " + e.message);
 				}
 			}
-
 			// Demande l'utilisation de la signature
 			function RequestMpSignatureUsage() {
 				try {
@@ -437,7 +399,6 @@
 					alert("RequestMpSignatureUsage : " + e.message);
 				}
 			}
-
 			// Demande la font
 			function RequestMpFont() {
 				try {
@@ -446,7 +407,6 @@
 					alert("RequestMpFont : " + e.message);
 				}
 			}
-
 			// Fonction montrant le panneau de configuration de la signature
 			function ShowSignaturePanel(id) {
 				try {
@@ -458,7 +418,6 @@
 					alert("ShowSignaturePanel : " + e.message);
 				}
 			}
-
 			// Fonction cachant le panneau de configuration de la signature
 			function HideSignaturePanel() {
 				try {
@@ -467,17 +426,14 @@
 					alert("HideSignaturePanel : " + e.message);
 				}
 			}
-
 			// Ajout d'un effet lors du survol de la palette
 			function overPalette(me) {
 				me.style.border = '2px dotted #ff9900';
 			}
-
 			// Suppression de l'effet après le survol de la palette
 			function outPalette(me) {
 				me.style.border = '1px solid gray';
 			}
-
 			// Sélection de la couleur lors du clic sur la palette
 			function clickPalette(me) {
 				selectColor(me.id);
@@ -489,7 +445,6 @@
 				document.getElementById('edit').contentWindow.focus();
 				SendHtml();
 			}
-
 			// Sélection de l'emoticon lors du clic sur la palette emoticon
 			function clickEmoticon(me) {
 				document.getElementById('edit').contentWindow.document.execCommand(command, false, PathEmoticons +me.id);
@@ -497,7 +452,6 @@
 				document.getElementById('edit').contentWindow.focus();
 				SendHtml();
 			}
-
 			function addCustomTag(startTag, endTag) {
 				try {
 					var messageAreaWindow = document.getElementById('edit').contentWindow;
@@ -508,7 +462,6 @@
 					alert("MessageRTE.htm - addCustomTag : " + err.message);
 				}
 			}
-
 			function CreateLink() {
 				try {
 					var sel = document.getElementById('edit').contentWindow.getSelection();
@@ -529,7 +482,6 @@
 					alert("CreateLink : " + e.message);
 				}
 			}
-
 			function CreateLinkImage() {
 				try {
 					var url = prompt("Veuillez saisir l'URL à linker", "http://www.");
@@ -552,7 +504,6 @@
 					alert("CreateLink : " + e.message);
 				}
 			}
-
 			function CreateImage() {
 				try {
 					var url = prompt("Veuillez saisir l'URL de l'image", "http://www.");
@@ -567,7 +518,6 @@
 					alert("CreateLink : " + e.message);
 				}
 			}
-
 			/// Paste
 			//function onKeyPressHandler(e) {
 			//	alert("enter");
@@ -581,7 +531,6 @@
 			//	alert(e.keyCode);
 			//	alert(ctrlDown);
 			//}
-
 			/* Ajout de disciple (62333) */
 			//-- Trõlldûctéûr --
 			function Trollducteur() {
@@ -595,7 +544,6 @@
 					alert("trollducteur :" + e.message);
 				}
 			};
-
 			function TranslateToToll(message) {
 				return message
 					.replace(/°*y°*/g, '°y°')
@@ -827,7 +775,6 @@
 				</div>
 			</div>
 		</div>
-
 		<script type="text/javascript">
 			// Passer la boite d'édition en mode html ou édition
 			function viewsource(source) {
