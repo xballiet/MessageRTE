@@ -242,11 +242,11 @@
 			}
 			function displayPossibleOrigins() {
 				try {
-					var ret = "";
-					var sep = ",\r\n - ";
+					var ret = "\r\n - ";
+					var sep = "\r\n - ";
 					for (i = 0 ; i < hostnames.length ; i++) {
-						if (i == hostnames.length - 2) {
-							sep = " ou \r\n - " ;
+						if (i == hostnames.length - 1) {
+							sep = "\r\n" ;
 						}
 						ret = ret + hostnames[i] + sep;
 					}
